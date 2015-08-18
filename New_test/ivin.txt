@@ -1,0 +1,86 @@
+http://mygpslostitself.blogspot.ie/2015/07/criu-project-to-implement.html
+
+
+Step 1- run a test perl script that writes to a temporary file every second
+root@docker:~/docker_tests# cat test.pl
+#!/usr/bin/perl
+use IO::Handle;
+my $filename = '/tmp/report.txt';
+open(my $fh, '>', $filename) or die "Could not open file '$filename' $!";
+for (my $i=1; $i <= 300; $i++) {
+        print $fh "i is $i\n";
+        $fh->flush();
+        sleep 1;
+}
+close $fh;
+root@docker:~/docker_tests# ./test.pl &
+[1] 14969
+root@docker:~/docker_tests# tail /tmp/report.txt
+i is 1
+i is 2
+i is 3
+i is 4
+i is 5
+i is 6
+i is 7
+root@docker:~/docker_tests# 
+
+Step 2 - checkpoint the process id (14969) to a folder called "checkpoint"
+root@docker:~/docker_tests# mkdir checkpoint
+root@docker:~/docker_tests# criu-1.6/criu dump --shell-job  -D checkpoint -t 14969
+Warn  (arch/x86/crtools.c:132): Will restore 14969 with interrupted system call
+root@docker:~/docker_tests#
+[1]+  Killed                  ./test.pl
+root@docker:~/docker_tests# ls -l checkpoint/
+total 1416
+-rw-r--r-- 1 root root     561 Jul 14 16:53 cgroup.img
+-rw-r--r-- 1 root root     822 Jul 14 16:53 core-14969.img
+-rw-r--r-- 1 root root      60 Jul 14 16:53 creds-14969.img
+-rw-r--r-- 1 root root      56 Jul 14 16:53 fdinfo-2.img
+-rw-r--r-- 1 root root      18 Jul 14 16:53 fs-14969.img
+-rw-r--r-- 1 root root      32 Jul 14 16:53 ids-14969.img
+-rw-r--r-- 1 root root      38 Jul 14 16:53 inventory.img
+-rw-r--r-- 1 root root    1717 Jul 14 16:53 mm-14969.img
+-rw-r--r-- 1 root root     241 Jul 14 16:53 pagemap-14969.img
+-rw-r--r-- 1 root root 1388544 Jul 14 16:53 pages-1.img
+-rw-r--r-- 1 root root      26 Jul 14 16:53 pstree.img
+-rw-r--r-- 1 root root     751 Jul 14 16:53 reg-files.img
+-rw-r--r-- 1 root root     794 Jul 14 16:53 sigacts-14969.img
+-rw-r--r-- 1 root root      35 Jul 14 16:53 stats-dump
+-rw-r--r-- 1 root root      32 Jul 14 16:53 tty.img
+-rw-r--r-- 1 root root     169 Jul 14 16:53 tty-info.img
+root@docker:~/docker_tests#
+
+Step 3 - verify that the process is no longer running
+root@docker:~/docker_tests# ps axuw | grep test.pl
+root     14994  0.0  0.0  11748  2208 pts/3    S+   16:54   0:00 grep --color=auto test.pl
+root@docker:~/docker_tests# tail /tmp/report.txt
+i is 62
+i is 63
+i is 64
+i is 65
+i is 66
+i is 67
+i is 68
+i is 69
+i is 70
+i is 71
+root@docker:~/docker_tests#
+
+Step 4 - restore the process and confirm it picked up exactly where it left off :o)
+root@docker:~/docker_tests# criu-1.6/criu restore -d --shell-job -D checkpoint
+root@docker:~/docker_tests# ps axuw | grep test.pl
+root     14969  0.0  0.0  23548  1348 pts/3    S    16:55   0:00 /usr/bin/perl ./test.pl
+root     14974  0.0  0.0  11748  2280 pts/3    S+   16:56   0:00 grep --color=auto test.pl
+root@docker:~/docker_tests# tail /tmp/report.txt
+i is 74
+i is 75
+i is 76
+i is 77
+i is 78
+i is 79
+i is 80
+i is 81
+i is 82
+i is 83
+root@docker:~/docker_tests#
