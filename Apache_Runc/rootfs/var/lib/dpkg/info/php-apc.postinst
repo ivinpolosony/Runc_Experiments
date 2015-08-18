@@ -1,0 +1,13 @@
+#!/bin/sh
+
+DOCDIR=/usr/share/doc/php-apc
+DOCLINK=php5-apcu
+
+if [ -d $DOCDIR ] && [ ! -L $DOCDIR ]; then
+    rmdir $DOCDIR
+    ln -s $DOCLINK $DOCDIR
+fi
+
+
+
+exit 0

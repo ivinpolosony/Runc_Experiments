@@ -1,0 +1,2 @@
+sudo criu dump --shell-job --ext-unix-sk   -D checkpoint -t 1594
+sudo criu restore --shell-job --ext-unix-sk   -D checkpoint

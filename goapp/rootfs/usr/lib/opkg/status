@@ -1,0 +1,15 @@
+Package: libc
+Version: 0.9.33.2-1
+Depends: libgcc
+Status: install hold,user installed
+Essential: yes
+Architecture: x86_64
+Installed-Time: 1413420415
+
+Package: libgcc
+Version: 4.8-linaro-1
+Status: install hold,user installed
+Essential: yes
+Architecture: x86_64
+Installed-Time: 1413420413
+
